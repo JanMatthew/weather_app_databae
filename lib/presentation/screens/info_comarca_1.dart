@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:weather_app/date/counties.dart';
-import 'package:weather_app/domain/entities/favsList.dart';
-import 'package:weather_app/presentation/blocs/favsLists/favsLists_bloc.dart';
-import 'package:weather_app/presentation/blocs/favsLists/favsLists_event.dart';
 import 'package:weather_app/services/database.dart';
 import 'package:weather_app/widgets/widget_weather.dart';
 
@@ -11,9 +7,7 @@ class InfoComarca1Screen extends StatefulWidget {
   final int provinceId;
   final int regionId;
   final String user;
-  final String? favsListId;
-  final FavslistEntity? favsList;
-  const InfoComarca1Screen({super.key,required this.provinceId, required this.regionId,required this.user, this.favsListId, this.favsList});
+  const InfoComarca1Screen({super.key,required this.provinceId, required this.regionId,required this.user});
   
   @override
   State<InfoComarca1Screen> createState()=>
@@ -24,12 +18,32 @@ class _InfoComarca1State extends State<InfoComarca1Screen>{
   final int provinceId;
   final int regionId;
   final String user;
-  final String? favsListId;
-  final FavslistEntity? favsList;
   
   String addDel = 'Añadir a favoritos';
   int _currentIndex = 0;
   
+  @override
+  void initState() {
+    super.initState();
+    _checkIfFavorite(); // Valida si la región/provincia está en favoritos al iniciar
+  }
+
+  Future<void> _checkIfFavorite() async {
+    DatabaseService db = DatabaseService(user);
+    List<String> favoriteCounties = await db.getFavoriteCounties();
+    String countie = "$regionId,$provinceId";
+
+    // Si está en favoritos, cambia el texto del botón
+    if (favoriteCounties.contains(countie)) {
+      setState(() {
+        addDel = 'Eliminar de favoritos';
+      });
+    } else {
+      setState(() {
+        addDel = 'Añadir a favoritos';
+      });
+    }
+  }
 
   Map get comarca => provincies["provincies"][provinceId]["comarques"][regionId];
   
@@ -76,64 +90,34 @@ class _InfoComarca1State extends State<InfoComarca1Screen>{
                 padding: const EdgeInsets.only(left: 10,right: 10),
                 child: TextButton(
                   onPressed: () async {
-                    String countie = "$regionId,$provinceId";
-                    if(widget.favsListId != null){
-                      final favoriteCounties = "";
-                      if(favoriteCounties.contains(countie)){
-                          setState(() {
-                            addDel = 'Añadir a favoritos';
-                        });
-
-                      final favsList = FavslistEntity(
-                            id: widget.favsListId!,
-                            user: user, 
-                            favsRegions: 
-                      );
-
-                      context.read<FavsListBloc>().add(DeleteFavsListEvent(widget.favsListId!));
+                    DatabaseService db = DatabaseService(user);
+                    List<String> favoriteCounties = await db.getFavoriteCounties();
+                    String countie = "$regionId,$provinceId"; 
+                    if(favoriteCounties.contains(countie)){
+                      setState(() {
+                        addDel = 'Añadir a favoritos';
+                      });
+                      await db.deleteFavoriteCountie(countie);
 
                       ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Eliminado de favoritos'),
-                                  backgroundColor: Colors.green,
-                                ),
-                                );
-                    }
-                    else{
+                              const SnackBar(
+                                content: Text('Eliminado de favoritos'),
+                                backgroundColor: Colors.green,
+                               ),
+                              );
+                    }else{
                       setState(() {
                         addDel = 'Eliminar de favoritos';
                       });
+                      await db.updateFavoriteCounties(countie);
 
-                        final favsRegionsList = context.read<FavsListBloc>().getFavsListById(widget.favsListId!);
-                        final favsList = FavslistEntity(
-                          id: widget.favsListId!,
-                          user: user, 
-                          favsRegions: context.read<FavsListBloc>().add(GetFavsListByIdEvent(widget.favsListId!))
-                        );
-                        context.read<FavsListBloc>().add(UpdateFavsListEvent(favsList));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Añadido a favoritos'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Añadido a favoritos'),
+                                backgroundColor: Colors.green,
+                               ),
+                              );
                     }
-                      
-                  }else{
-                    final favsList = FavslistEntity(
-                          id: widget.favsListId ?? DateTime.now().toString(),
-                          user: user, 
-                          favsRegions: [countie]
-                        );
-                        context.read<FavsListBloc>().add(AddFavsListEvent(favsList));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Añadido a favoritos'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                        
-                  }
                     
 
                   } , 
@@ -218,7 +202,7 @@ class _InfoComarca1State extends State<InfoComarca1Screen>{
       ),
     ];
 
-  _InfoComarca1State({required this.provinceId, required this.regionId,required this.user, this.favsListId, this.favsList});
+    _InfoComarca1State({required this.provinceId, required this.regionId,required this.user});
 
 
   @override

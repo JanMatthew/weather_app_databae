@@ -99,13 +99,9 @@ class _LoginScreenState extends State<LoginScreen>{
                         ),
                         onPressed: () async {
                           if(await signIn(_emailLogController.text, _passwordLogController.text)){
-                            final DatabaseService ds = DatabaseService(_emailLogController.text);
-                            ds.updateUserData(_emailLogController.text);
-                            Map<String,dynamic>? userData = await ds.getUserData();
-                            var name = userData?['login'];
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text(name),
+                                content: Text('Login Correcto'),
                                 backgroundColor: Colors.green,
                                ),
                               );

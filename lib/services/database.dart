@@ -1,52 +1,57 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 class DatabaseService {
 
   final String email;
   DatabaseService(this.email);
 
-  final CollectionReference brewCollection = FirebaseFirestore.instance.collection('brews');
-
-  Future updateUserData(String login) async {
-    return await brewCollection.doc(email).set({
-      'login':login
-    });
-  }
-
-  Future updateFavoriteCounties(String newCountie) async {
-    List<String> favoriteCounties = await getFavoriteCounties();
-    favoriteCounties.add(newCountie);
-    return await brewCollection.doc(email).set({
-      'fav_counties': favoriteCounties,
-    });
-  }
+Future updateFavoriteCounties(String newCountie) async {
+    String safeEmail = email.replaceAll('.', '_');
+    final db = FirebaseDatabase.instance.ref('favsLists/$safeEmail');
+    List<String> fav_counties = await getFavoriteCounties();
+    fav_counties.add(newCountie);
+    print(newCountie);
+    return db.update({'favsRegions':fav_counties});
+}
 
 Future<List<String>> getFavoriteCounties() async {
   try {
     // Obtén el documento desde Firestore
-    DocumentSnapshot snapshot = await brewCollection.doc(email).get();
-
+    String safeEmail = email.replaceAll('.', '_');
+    final db = FirebaseDatabase.instance.ref('favsLists/$safeEmail');
+    final snapshot = await db.get();
+    
     if (snapshot.exists) {
-      // Asegúrate de que los datos sean un Map válido
-      Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+      
+      Map<String, dynamic> data = Map<String, dynamic>.from(snapshot.value as Map);
 
       // Verifica si el campo 'fav_counties' existe y no es null
-      if (data.containsKey('fav_counties') && data['fav_counties'] != null) {
-        List<dynamic> fav = data['fav_counties'];
-        return fav.map((item) => item.toString()).toList();
+      if (data.containsKey('favsRegions') && data['favsRegions'] != null) {
+        print(data['favsRegions']);
+        List<dynamic> favList = data['favsRegions'];
+        
+        print(favList);
+        return favList.map((item) => item.toString()).toList();
       } else {
         print("No existe fav counties");
         return []; // Devuelve una lista vacía si el campo no existe o es null
       }
     } else {
-      print("Snapshot no exitst");
-      return []; // Devuelve una lista vacía si el documento no existe
+      print("Usuario no encontrado en la base de datos. Creando entrada...");
+      
+      await FirebaseDatabase.instance.ref('favsLists').child(safeEmail).set({
+        'favsRegions': []
+      });
+
+      return []   ; // Devuelve una lista vacía si el documento no existe
     }
   } catch (e) {
     print('Error al obtener los datos: $e');
     return []; // Devuelve una lista vacía en caso de error
   }
+  
 }
 
   Future deleteFavoriteCountie(String countyToDelete) async {
@@ -57,10 +62,11 @@ Future<List<String>> getFavoriteCounties() async {
     // Si el elemento está en la lista, elimínalo
     if (favoriteCounties.contains(countyToDelete)) {
       favoriteCounties.remove(countyToDelete);
-
+      print(favoriteCounties);
+      String safeEmail = email.replaceAll('.', '_');
       // Actualiza la lista en la base de datos
-      await brewCollection.doc(email).update({
-        'fav_counties': favoriteCounties,
+      await FirebaseDatabase.instance.ref('favsLists/$safeEmail').update({
+        'favsRegions': favoriteCounties,
       });
     }
   } catch (e) {
@@ -70,10 +76,11 @@ Future<List<String>> getFavoriteCounties() async {
 
   Future<Map<String,dynamic>?> getUserData() async{
     try{
-      DocumentSnapshot snapshot = await brewCollection.doc(email).get();
+      String safeEmail = email.replaceAll('.', '_');
+      final snapshot = await FirebaseDatabase.instance.ref('favsLists/$safeEmail').get();
     
       if(snapshot.exists){
-        return snapshot.data() as Map<String,dynamic>;
+        return snapshot.value as Map<String,dynamic>;
       }
       else{
         return null;
