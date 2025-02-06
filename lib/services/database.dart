@@ -1,5 +1,4 @@
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_database/firebase_database.dart';
 
 class DatabaseService {
@@ -10,10 +9,10 @@ class DatabaseService {
 Future updateFavoriteCounties(String newCountie) async {
     String safeEmail = email.replaceAll('.', '_');
     final db = FirebaseDatabase.instance.ref('favsLists/$safeEmail');
-    List<String> fav_counties = await getFavoriteCounties();
-    fav_counties.add(newCountie);
+    List<String> favCounties = await getFavoriteCounties();
+    favCounties.add(newCountie);
     print(newCountie);
-    return db.update({'favsRegions':fav_counties});
+    return db.update({'favsRegions':favCounties});
 }
 
 Future<List<String>> getFavoriteCounties() async {

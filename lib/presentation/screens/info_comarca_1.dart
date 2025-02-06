@@ -1,66 +1,68 @@
 import 'package:flutter/material.dart';
 import 'package:weather_app/date/counties.dart';
+import 'package:weather_app/peticiones_http.dart';
 import 'package:weather_app/services/database.dart';
 import 'package:weather_app/widgets/widget_weather.dart';
 
 class InfoComarca1Screen extends StatefulWidget {
-  final int provinceId;
-  final int regionId;
+  final String comarca;
   final String user;
-  const InfoComarca1Screen({super.key,required this.provinceId, required this.regionId,required this.user});
+  const InfoComarca1Screen({super.key,required this.comarca,required this.user});
   
   @override
   State<InfoComarca1Screen> createState()=>
-    _InfoComarca1State(provinceId: provinceId,regionId: regionId,user:user);
+    _InfoComarca1State(comarca: comarca,user:user);
 }
 
 class _InfoComarca1State extends State<InfoComarca1Screen>{
-  final int provinceId;
-  final int regionId;
+  final String comarca;
   final String user;
   
   String addDel = 'Añadir a favoritos';
   int _currentIndex = 0;
+  Map<dynamic,dynamic> infoComarca = {};
   
+  _InfoComarca1State({required this.comarca,required this.user});
+
   @override
   void initState() {
     super.initState();
-    _checkIfFavorite(); // Valida si la región/provincia está en favoritos al iniciar
+    _loadData(); // Valida si la región/provincia está en favoritos al iniciar
   }
 
-  Future<void> _checkIfFavorite() async {
-    DatabaseService db = DatabaseService(user);
-    List<String> favoriteCounties = await db.getFavoriteCounties();
-    String countie = "$regionId,$provinceId";
+  Future<void> _loadData() async {
+    try{
+      final data = await obtenerInfoComarca(comarca: comarca);
+      DatabaseService db = DatabaseService(user);
+      List<String> favoriteCounties = await db.getFavoriteCounties();    
 
-    // Si está en favoritos, cambia el texto del botón
-    if (favoriteCounties.contains(countie)) {
       setState(() {
-        addDel = 'Eliminar de favoritos';
+        infoComarca = data;
+        addDel = favoriteCounties.contains(comarca)
+          ? 'Eliminar de favoritos'
+          : 'Añadir a favoritos';
       });
-    } else {
-      setState(() {
-        addDel = 'Añadir a favoritos';
-      });
+    } catch (e) {
+      print('Error al cargar la información: $e');
     }
   }
-
-  Map get comarca => provincies["provincies"][provinceId]["comarques"][regionId];
   
-  List<Widget> get _pages => [
+  List<Widget> get _pages => infoComarca.isEmpty 
+    ? [Center(child: CircularProgressIndicator())]
+    :[
     Center(
       child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Image.network(
-                comarca["img"],
+                infoComarca["img"],
                 width: double.infinity,
                 fit: BoxFit.cover,
               ),
                Padding(
                 padding: const EdgeInsets.only(left: 10,bottom: 10,top: 20),
                 child:  Text(
-                  comarca["comarca"],
+                  infoComarca["comarca"],
                   style: const TextStyle(
                     fontSize: 30,
                     color: Colors.grey
@@ -70,7 +72,7 @@ class _InfoComarca1State extends State<InfoComarca1Screen>{
                Padding(
                 padding: const EdgeInsets.only(left: 10,bottom: 10),
                 child: Text(
-                  "Capital: " + comarca["capital"],
+                  "Capital: " + infoComarca["capital"],
                   style: const TextStyle(
                     fontSize: 25,
                     fontWeight: FontWeight.bold
@@ -80,7 +82,7 @@ class _InfoComarca1State extends State<InfoComarca1Screen>{
                Padding(
                 padding: const EdgeInsets.only(left: 10,right: 10),
               child: Text(
-                comarca["desc"],
+                infoComarca["desc"],
                 style: const TextStyle(
                   fontSize: 15
                 ),
@@ -92,12 +94,11 @@ class _InfoComarca1State extends State<InfoComarca1Screen>{
                   onPressed: () async {
                     DatabaseService db = DatabaseService(user);
                     List<String> favoriteCounties = await db.getFavoriteCounties();
-                    String countie = "$regionId,$provinceId"; 
-                    if(favoriteCounties.contains(countie)){
+                    if(favoriteCounties.contains(comarca)){
                       setState(() {
                         addDel = 'Añadir a favoritos';
                       });
-                      await db.deleteFavoriteCountie(countie);
+                      await db.deleteFavoriteCountie(comarca);
 
                       ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
@@ -109,7 +110,7 @@ class _InfoComarca1State extends State<InfoComarca1Screen>{
                       setState(() {
                         addDel = 'Eliminar de favoritos';
                       });
-                      await db.updateFavoriteCounties(countie);
+                      await db.updateFavoriteCounties(comarca);
 
                       ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
@@ -129,7 +130,7 @@ class _InfoComarca1State extends State<InfoComarca1Screen>{
     Center(
           child: Column(
             children: [
-              WidgetWeather(latitud: comarca["coordenades"][0], longitud: comarca["coordenades"][1]),
+              WidgetWeather(latitud: infoComarca["latitud"], longitud: infoComarca["longitud"]),
               Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -170,21 +171,21 @@ class _InfoComarca1State extends State<InfoComarca1Screen>{
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            comarca["poblacio"],
+                            infoComarca["poblacio"],
                             style: const TextStyle(
                               fontSize: 20,
                             ),
                           ),
                           const SizedBox(height: 5), // Espacio entre los textos
                           Text(
-                            comarca["coordenades"][0].toString(),
+                            infoComarca["latitud"].toString(),
                             style: const TextStyle(
                               fontSize: 20,
                             ),
                           ),
                           const SizedBox(height: 5), // Espacio entre los textos
                           Text(
-                            comarca["coordenades"][1].toString(),
+                            infoComarca["longitud"].toString(),
                             style: const TextStyle(
                               fontSize: 20,
                             ),
@@ -202,7 +203,6 @@ class _InfoComarca1State extends State<InfoComarca1Screen>{
       ),
     ];
 
-    _InfoComarca1State({required this.provinceId, required this.regionId,required this.user});
 
 
   @override

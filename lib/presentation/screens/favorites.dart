@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:weather_app/date/counties.dart';
+import 'package:weather_app/peticiones_http.dart';
 import 'package:weather_app/services/database.dart';
 
 class FavoritesScreen extends StatelessWidget {
@@ -50,49 +51,61 @@ class FavoritesScreen extends StatelessWidget {
               return ListView.builder(
               itemCount: favs.length,
               itemBuilder: (context,index){
-                  String provinceId;
-                  String regionId;
-                  return Padding(padding: const EdgeInsets.only(bottom: 10),
-                    child: GestureDetector(
-                      onTap: () => {
-                        provinceId = favs[index].split(",")[1],
-                        regionId = favs[index].split(",")[0],
-                        context.push("/info_1/$provinceId/$regionId/$user")
-                      },
-                      child: Card(
-                        child: Stack(
-                          alignment: Alignment.bottomLeft,
-                          children: [
-                            Image.network(
-                              provincies["provincies"][int.parse(favs[index].split(",")[1])]["comarques"][int.parse(favs[index].split(",")[0])]["img"].toString(),
-                              width: double.infinity,
-                              height: 150,
-                              fit: BoxFit.cover,  
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 10, left: 10),
-                              child: Text(
-                                provincies["provincies"][int.parse(favs[index].split(",")[1])]["comarques"][int.parse(favs[index].split(",")[0])]["comarca"].toString(),
-                                style: const TextStyle(
-                                  fontSize: 25,
-                                  color: Colors.white,
-                                  shadows: [
-                                    Shadow(
-                                      color: Colors.black,
-                                      offset: Offset(4, 4)
-                                    )
-                                  ],
-                                  fontStyle: FontStyle.italic,
-                                ),
+                return FutureBuilder(
+                  future: obtenerInfoComarca(comarca: favs[index]), 
+                  builder: (context,snapshot){
+                    if(snapshot.connectionState == ConnectionState.waiting){
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    else if(snapshot.hasError){
+                      return const Center(child: Text('Error al cargar favoritos'));
+                    }
+                    else if(snapshot.hasData){
+                      Map<dynamic,dynamic> comarcaInfo = snapshot.data as Map<dynamic,dynamic>;
+                      return Padding(padding: const EdgeInsets.only(bottom: 10),
+                      child: GestureDetector(
+                        onTap: () => {
+                          context.push("/info_1/${comarcaInfo["comarca"]}/$user")
+                        },
+                        child: Card(
+                          child: Stack(
+                            alignment: Alignment.bottomLeft,
+                            children: [
+                              Image.network(
+                                comarcaInfo["img"].toString(),
+                                width: double.infinity,
+                                height: 150,
+                                fit: BoxFit.cover,  
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 10, left: 10),
+                                child: Text(
+                                  comarcaInfo["comarca"],
+                                  style: const TextStyle(
+                                    fontSize: 25,
+                                    color: Colors.white,
+                                    shadows: [
+                                      Shadow(
+                                        color: Colors.black,
+                                        offset: Offset(4, 4)
+                                      )
+                                    ],
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                )
                               )
-                            )
-                          ]
+                            ]
+                          )
                         )
                       )
-                    )
-                  );
-                }
+                      );
+                    }
+                    else{
+                      return Center(child: Text("No se puedo cargar los datos"));
+                    }
+                  }
               );
+              });
             }
           }
           else{

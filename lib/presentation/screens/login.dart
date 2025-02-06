@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:weather_app/services/database.dart';
 
 class LoginScreen extends StatefulWidget{
   const LoginScreen({super.key});
@@ -100,7 +99,7 @@ class _LoginScreenState extends State<LoginScreen>{
                         onPressed: () async {
                           if(await signIn(_emailLogController.text, _passwordLogController.text)){
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
+                              const SnackBar(
                                 content: Text('Login Correcto'),
                                 backgroundColor: Colors.green,
                                ),

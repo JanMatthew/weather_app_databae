@@ -19,11 +19,11 @@ final GoRouter router = GoRouter(
     ),
     GoRoute(
       name: 'regions',
-      path: '/regions/:provinceId/:email',
+      path: '/regions/:province/:email',
       builder: (context,state){ 
         final String email = state.pathParameters['email']!;
-        final int provinceId = int.parse(state.pathParameters['provinceId']!);
-        return ComarquesScreen(provinceId: provinceId,user: email,);
+        final String province = state.pathParameters['province']!;
+        return ComarquesScreen(provincia: province,user: email,);
       }
     ),
     GoRoute(
@@ -36,12 +36,11 @@ final GoRouter router = GoRouter(
     ),
     GoRoute(
       name: 'info comarca 1',
-      path: '/info_1/:provinceId/:regionId/:email',
+      path: '/info_1/:region/:email',
       builder: (context,state) {
         final String email = state.pathParameters['email']!;
-        final int provinceId = int.parse(state.pathParameters['provinceId']!);
-        final int regionId = int.parse(state.pathParameters['regionId']!);
-        return InfoComarca1Screen(provinceId: provinceId, regionId: regionId,user: email,);
+        final String region = state.pathParameters['region']!;
+        return InfoComarca1Screen(comarca: region,user: email,);
       }
     ),
     GoRoute(
